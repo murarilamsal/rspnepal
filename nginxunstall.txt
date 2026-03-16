@@ -1,0 +1,71 @@
+Since you haven't installed Nginx on this new instance, your browser doesn't know how to "talk" to your FastAPI app over standard web ports (80/443). Right now, your app is likely only listening on port 8000, while the domain name expects a web server to be waiting at the front door.
+
+Here is the exact sequence to restore RSPNepal.online on your new EC2 instance.
+
+Step 1: Install Nginx & Certbot
+
+First, you need the web server and the SSL tool.
+
+Bash
+sudo apt update
+sudo apt install nginx certbot python3-certbot-nginx -y
+Step 2: Create the Nginx "Bridge"
+
+Nginx needs to know to take traffic from rspnepal.online and send it to your app on port 8000.
+
+Create the config file:
+
+Bash
+sudo nano /etc/nginx/sites-available/rspnepal
+Paste this configuration:
+
+Nginx
+server {
+    listen 80;
+    server_name rspnepal.online www.rspnepal.online;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+Enable it and restart Nginx:
+
+Bash
+sudo ln -s /etc/nginx/sites-available/rspnepal /etc/nginx/sites-enabled/
+sudo rm /etc/nginx/sites-enabled/default  # Remove the default welcome page
+sudo nginx -t && sudo systemctl restart nginx
+Step 3: Verify DNS is Pointing Correct
+
+Before Certbot can give you a certificate, the internet must agree that rspnepal.online belongs to your new IP.
+
+Run this in your terminal: nslookup rspnepal.online
+
+If the IP address in the result matches your new EC2 Public IP, proceed to Step 4.
+
+If it shows the old IP, you must wait about 10–20 minutes for GoDaddy to finish updating.
+
+Step 4: Re-apply the SSL Certificate
+
+Since this is a new server, the old SSL certificates are gone. You must generate new ones:
+
+Bash
+sudo certbot --nginx -d rspnepal.online -d www.rspnepal.online
+Choose Option 2 (Redirect) when asked.
+
+Why the Public IP worked but the Domain didn't:
+
+Port 8000 vs 80: When you use the IP, you are likely typing http://IP:8000.
+
+Domain Defaults: When you type rspnepal.online, the browser automatically tries Port 80 (HTTP) or 443 (HTTPS). Without Nginx installed, no one is "listening" on those ports to pick up the call.
+
+Would you like me to check the current DNS status of your domain to see if it has successfully propagated to your new IP yet?
+
+Deploying FastAPI on AWS EC2 with Nginx
+This video provides a complete walkthrough of setting up Nginx as a reverse proxy for FastAPI on an EC2 instance, which matches your current situation perfectly.
+
+How To Deploy FastAPI with Nginx and PM2 - YouTube
+Full Stack Book · 16K views

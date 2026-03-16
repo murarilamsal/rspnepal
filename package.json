@@ -1,0 +1,10 @@
+{
+    "name": "rsp-nepal-workspace",
+    "private": true,
+    "scripts": {
+        "build": "npm --prefix frontend run build",
+        "dev": "npm --prefix frontend run dev",
+        "frontend:build": "npm --prefix frontend run build",
+        "frontend:dev": "npm --prefix frontend run dev"
+    }
+}
